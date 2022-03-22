@@ -5,11 +5,11 @@ from django.http import HttpResponse
 import json
 # Create your views here.
 
-
 def connect_to_db():
     conn = psycopg2.connect(database=os.getenv('DATABASE_NAME'), user=os.getenv('DATABASE_USER'),
                             password=os.getenv('DATABASE_PASSWORD'), host=os.getenv('DATABASE_HOST'),
                             port=os.getenv('DATABASE_PORT'))
+
     return conn
 
 
@@ -31,5 +31,18 @@ def print_tasks(request, user_id):
 
     cur = conn.cursor()
     cur.execute(query)
+    result = cur.fetchall()
 
-    return HttpResponse(cur)
+    object = {
+        'user_id': result[0][0],
+        'name': result[0][1],
+        'surname': result[0][2],
+        'tasks': []
+    }
+    for i in result:
+        object['tasks'].append({
+            'task_name': i[3],
+            'subject': i[4]
+        })
+
+    return JsonResponse(object)
