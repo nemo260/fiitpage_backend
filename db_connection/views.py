@@ -45,13 +45,15 @@ def test(request):
     return HttpResponse(cur)
 
 
-def print_tasks(request, user_id):
+def print_tasks(request):
 
     if request.method != 'GET':
         return JsonResponse({'message': 'Bad request'}, status=400)
 
     if not validateToken(request):
         return JsonResponse({'message': 'Bad token'}, status=401)
+
+    user_id = getUserIdByToken(request)
 
     query = "select u.id as user_id, u.name as name, u.surname as surname, t.name as task_name, t.subject as subject from users as u, tasks as t, user_tasks as ut where u.id = ut.user_id and t.id = ut.task_id and u.id = " + str(user_id)
 
