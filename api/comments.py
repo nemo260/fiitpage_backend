@@ -1,7 +1,10 @@
 from django.http import JsonResponse
 from django.http import HttpResponse
-from api.auth import validateToken,loggedUser
+from api.auth import validateToken, loggedUser, getUserIdByToken
 from api.db_connection import cur
+import json, datetime
+import jwt
+
 
 def get_comments_by_task_id(request, task_id: int):
     if request.method != 'GET':
@@ -38,3 +41,30 @@ def get_comments_by_task_id(request, task_id: int):
         })
 
     return JsonResponse(object, status=200)
+
+
+def add_comment(request, task_id: int):
+    if request.method != 'POST':
+        return JsonResponse({'message': 'Bad request method'}, status=400)
+
+    if not validateToken(request):
+        return JsonResponse({'message': 'Bad token'}, status=401)
+
+    if not loggedUser(request):
+        return JsonResponse({'message': 'You are not logged in'}, status=401)
+
+    if not request.body:
+        return JsonResponse({'message': 'No data'}, status=400)
+
+    user_id = getUserIdByToken(request)
+
+    data = request.body.decode('utf-8')
+    data = json.loads(data)
+
+    if 'comment' not in data:
+        return JsonResponse({'message': 'No comment'}, status=400)
+
+    query = "insert into comments (comment, user_id, task_id) values ('" + data['comment'] + "'," + str(user_id) + ",'" + str(task_id) + "');"
+
+    cur.execute(query)
+    return JsonResponse({'message': 'Added comment'}, status=201)
