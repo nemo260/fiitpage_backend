@@ -121,6 +121,9 @@ def getUserMarks(request):
     if not validateToken(request):
         return JsonResponse({'message': 'Bad token'}, status=401)
 
+    if not loggedUser(request):
+        return JsonResponse({'message': 'You are not logged in'}, status=401)
+
     user_id = getUserIdByToken(request)
 
     query = "select u.id as user_id, u.name as name, u.surname as surname, m.mark as mark, t.name as task_name from marks as m join users as u on u.id = m.user_id join tasks as t on t.id = m.task_id where u.id = " + str(user_id)
