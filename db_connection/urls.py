@@ -1,11 +1,13 @@
 from django.urls import path
-from . import views
+
+from api.auth import login,logout
+from api.tasks import print_tasks
+from api.marks import getUserMarks
 
 urlpatterns = [
-    path('user/login', views.login, name="login"),
-    path('user/logout', views.logout, name="logout"),
+    path('user/login', login, name="login"),
+    path('user/logout', logout, name="logout"),
 
-    path('user/marks', views.getUserMarks, name="getUserMarks"),
-    path('user/tasks', views.print_tasks, name="print_tasks"),
-
+    path('user/marks', getUserMarks, name="getUserMarks"),
+    path('user/tasks', print_tasks, name="print_tasks"),
 ]
