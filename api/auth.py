@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from api.db_connection import cur
 
 
+# check if user is logged in
 def loggedUser(request):
     token = request.headers['Authorization'].split(' ')[1]
     token = jwt.decode(token, 'secret', algorithms='HS256')
@@ -14,6 +15,23 @@ def loggedUser(request):
     else:
         return True
 
+
+# check if user is teacher
+def is_user_teacher(request):
+    token = request.headers['Authorization'].split(' ')[1]
+    token = jwt.decode(token, 'secret', algorithms='HS256')
+
+    query = "select * from users where id = " + str(token['id'])
+    cur.execute(query)
+    result = cur.fetchall()
+
+    if result[0][5]:
+        return True
+    else:
+        return False
+
+
+# check if token is valid
 def validateToken(request):
     try:
         token = request.headers['Authorization'].split(' ')[1]
@@ -24,12 +42,15 @@ def validateToken(request):
     return True
 
 
+# get current user id
 def getUserIdByToken(request):
     token = request.headers['Authorization'].split(' ')[1]
     token = jwt.decode(token, 'secret', algorithms='HS256')
 
     return token['id']
 
+
+# login user and return token
 def login(request):
     if request.method != 'POST':
         return JsonResponse({'message': 'Bad request method'}, status=400)
@@ -53,6 +74,7 @@ def login(request):
     return JsonResponse({'login token': token}, status=200)
 
 
+# useless function for this time :)
 def logout(request):
     if request.method != 'POST':
         return JsonResponse({'message': 'Bad request method'}, status=400)
