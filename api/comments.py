@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.http import HttpResponse
 from api.auth import validateToken, loggedUser, getUserIdByToken
-from api.db_connection import cur
+from api.db_connection import cur, conn
 import json, datetime
 import jwt
 
@@ -67,4 +67,5 @@ def add_comment(request, task_id: int):
     query = "insert into comments (comment, user_id, task_id) values ('" + data['comment'] + "'," + str(user_id) + ",'" + str(task_id) + "');"
 
     cur.execute(query)
+    conn.commit()
     return JsonResponse({'message': 'Added comment'}, status=201)
