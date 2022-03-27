@@ -162,13 +162,11 @@ def assign_task(request):
         if len(result) == 0:
             return JsonResponse({'message': 'No student with this id'}, status=400)
 
-    for i in data['student_id']:
         cur.execute('''select * from users where role = true and id = %s''', str(i))
         result = cur.fetchall()
         if len(result):
             return JsonResponse({'message': 'You can not assign task to teacher'}, status=400)
 
-    for i in data['student_id']:
         cur.execute('''select * from user_tasks where task_id = %s and user_id = %s''', (data['task_id'], str(i)))
         result = cur.fetchall()
         if len(result) != 0:
