@@ -69,3 +69,37 @@ def add_comment(request, task_id: int):
     cur.execute(query)
     conn.commit()
     return JsonResponse({'message': 'Added comment'}, status=201)
+
+
+def delete_comment(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'message': 'Bad request method'}, status=400)
+
+    if not validateToken(request):
+        return JsonResponse({'message': 'Bad token'}, status=401)
+
+    if not loggedUser(request):
+        return JsonResponse({'message': 'You are not logged in'}, status=401)
+
+    if not request.body:
+        return JsonResponse({'message': 'No data'}, status=400)
+
+    data = request.body.decode('utf-8')
+    data = json.loads(data)
+    user_id = getUserIdByToken(request)
+
+    if 'comment_id' not in data:
+        return JsonResponse({'message': 'No comment id'}, status=400)
+
+    query = "select * from comments where id = " + str(data['comment_id']) + " and user_id = " + str(user_id) + ";"
+    cur.execute(query)
+    result = cur.fetchall()
+
+    if not result:
+        return JsonResponse({'message': 'No match comment_id with user_id'}, status=400)
+
+    query = "delete from comments where id = " + str(data['comment_id']) + ";"
+    cur.execute(query)
+    conn.commit()
+    return JsonResponse({'message': 'Deleted comment'}, status=200)
+

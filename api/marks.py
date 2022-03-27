@@ -85,3 +85,40 @@ def assignMark(request):
     conn.commit()
 
     return JsonResponse({'message': 'Mark assigned'}, status=200)
+
+
+# delete mark from student
+def deleteMark(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'message': 'Bad request'}, status=400)
+
+    if not validateToken(request):
+        return JsonResponse({'message': 'Bad token'}, status=400)
+
+    if not loggedUser(request):
+        return JsonResponse({'message': 'You are not logged in'}, status=400)
+
+    if not is_user_teacher(request):
+        return JsonResponse({'message': 'You are not a teacher'}, status=400)
+
+    data = request.body.decode('utf-8')
+    try:
+        data = json.loads(data)
+    except json.JSONDecodeError:
+        return JsonResponse({'message': 'Bad request'}, status=400)
+
+    if 'user_id' not in data or 'task_id' not in data:
+        return JsonResponse({'message': 'Bad request'}, status=400)
+
+    query = "select * from marks where user_id = " + str(data['user_id']) + " and task_id = " + str(data['task_id'])
+    cur.execute(query)
+    result = cur.fetchall()
+    if len(result) == 0:
+        return JsonResponse({'message': 'Mark not found'}, status=400)
+
+    query = "delete from marks where user_id = " + str(data['user_id']) + " and task_id = " + str(data['task_id'])
+    cur.execute(query)
+    conn.commit()
+
+    return JsonResponse({'message': 'Mark deleted'}, status=200)
+

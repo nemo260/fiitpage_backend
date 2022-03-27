@@ -43,15 +43,14 @@ def print_tasks(request):
 
 
 def create_new_task(request):
-
-    if not is_user_teacher(request):
-        return JsonResponse({'message': 'You are not authorized for this action'})
-
     if request.method != 'POST':
         return JsonResponse({'message': 'Bad request method'}, status=400)
 
     if not validateToken(request):
         return JsonResponse({'message': 'Bad token'}, status=401)
+
+    if not is_user_teacher(request):
+        return JsonResponse({'message': 'You are not authorized for this action'})
 
     if not loggedUser(request):
         return JsonResponse({'message': 'You are not logged in'}, status=401)
@@ -82,3 +81,32 @@ def create_new_task(request):
     conn.commit()
 
     return JsonResponse({"message": "successfully added task"})
+
+
+#def delete_task(request, task_id):
+#    if request.method != 'DELETE':
+#        return JsonResponse({'message': 'Bad request method'}, status=400)
+#
+#    if not validateToken(request):
+#        return JsonResponse({'message': 'Bad token'}, status=401)
+#
+#    if not loggedUser(request):
+#        return JsonResponse({'message': 'You are not logged in'}, status=401)
+#
+#    if not is_user_teacher(request):
+#        return JsonResponse({'message': 'You are not authorized for this action'}, status=401)
+#
+#    cur.execute('''DELETE FROM tasks WHERE id = %s''', str(task_id))
+#    conn.commit()
+#
+#    cur.execute('''DELETE FROM user_tasks WHERE task_id = %s''', str(task_id))
+#    conn.commit()
+#
+#    cur.execute('''DELETE FROM marks WHERE task_id = %s''', str(task_id))
+#    conn.commit()
+#
+#    cur.execute('''DELETE FROM comments WHERE task_id = %s''', str(task_id))
+#    conn.commit()
+#
+#    return JsonResponse({"message": "successfully deleted task"}, status=200)
+
