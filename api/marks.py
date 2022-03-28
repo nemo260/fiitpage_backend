@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from api.db_connection import cur, conn
-from api.auth import validateToken, getUserIdByToken, loggedUser, is_user_teacher
+from api.auth import validateToken, getUserIdByToken, loggedUser, is_user_teacher, check_request
 import json
 
 
@@ -122,3 +122,38 @@ def deleteMark(request):
 
     return JsonResponse({'message': 'Mark deleted'}, status=200)
 
+
+def update_mark(request):
+    error = check_request(request,
+                          request_method='PUT',
+                          must_be_logged_in=True,
+                          must_be_teacher=True,
+                          required_fields=['mark_id', 'new_mark', 'new_task_id', 'new_user_id'])
+    if error:
+        return error
+
+    data = json.loads(request.body.decode('utf-8'))
+    cur.execute(f"select * from users where users.id = {data['new_user_id']}")
+    result = cur.fetchall()
+    if not result:
+        return JsonResponse({'message': 'User id not found.'}, status=400)
+
+    result.clear()
+    cur.execute(f"select * from tasks where tasks.id = {data['new_task_id']}")
+    result = cur.fetchall()
+    if not result:
+        return JsonResponse({'message': 'Task id not found.'}, status=400)
+
+    result.clear()
+    cur.execute(f"select * from marks where marks.id = {data['mark_id']}")
+    result = cur.fetchall()
+    if not result:
+        return JsonResponse({'message': 'Mark id not found.'}, status=400)
+
+    cur.execute(f"""
+    update marks 
+    set mark = {data['new_mark']}, user_id = {data['new_user_id']}, task_id = {data['new_task_id']} 
+    where marks.id = {data['mark_id']}""")
+    conn.commit()
+
+    return JsonResponse({'message': 'Mark updated.'}, status=200)
