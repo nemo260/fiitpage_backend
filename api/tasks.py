@@ -1,16 +1,13 @@
 import json
 from django.http import JsonResponse
-from api.auth import validateToken, loggedUser, getUserIdByToken, is_user_teacher, check_request
+from api.auth import getUserIdByToken, check_request
 from api.db_connection import cur, conn
-import json
 
 
 def print_tasks(request):
-
     error = check_request(request,
                           request_method='GET',
                           must_be_logged_in=True)
-
     if error:
         return error
 
@@ -42,13 +39,11 @@ def print_tasks(request):
 
 
 def create_new_task(request):
-
     error = check_request(request,
                           request_method='POST',
                           must_be_logged_in=True,
                           must_be_teacher=True,
-                          required_fields=['name','subject'])
-
+                          required_fields=['name', 'subject'])
     if error:
         return error
 
@@ -74,7 +69,6 @@ def delete_task(request):
                           must_be_logged_in=True,
                           must_be_teacher=True,
                           required_fields=['task_id'])
-
     if error:
         return error
 
@@ -103,8 +97,6 @@ def delete_task(request):
 
 # assign task to student
 def assign_task(request):
-
-    #
     error = check_request(request, request_method='POST',
                           must_be_logged_in=True,
                           must_be_teacher=True,
@@ -142,3 +134,28 @@ def assign_task(request):
 
     return JsonResponse({"message": "successfully assigned task"}, status=200)
 
+
+def update_task(request):
+    error = check_request(request,
+                          request_method='PUT',
+                          must_be_logged_in=True,
+                          must_be_teacher=True,
+                          required_fields=['task_id', 'name', 'subject'])
+    if error:
+        return error
+
+    data = json.loads(request.body.decode())
+
+    cur.execute(f'''select * from tasks as t where t.id = {data['task_id']}''')
+    result = cur.fetchall()
+    if not len(result):
+        return JsonResponse({'message': 'No task with this id'}, status=400)
+
+    cur.execute(f'''
+    update tasks 
+    set name=%s, subject=%s, data=%s
+    where tasks.id = {data['task_id']};''',
+                (data['name'], data['subject'], data['data'] if 'data' in data.keys() else 'null'))
+    conn.commit()
+
+    return JsonResponse({'message': 'Successfully updated task'}, status=200)
