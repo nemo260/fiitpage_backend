@@ -1,19 +1,18 @@
 import json
 from django.http import JsonResponse
-from api.auth import validateToken, loggedUser, getUserIdByToken, is_user_teacher
+from api.auth import validateToken, loggedUser, getUserIdByToken, is_user_teacher, check_request
 from api.db_connection import cur, conn
 import json
 
 
 def print_tasks(request):
-    if request.method != 'GET':
-        return JsonResponse({'message': 'Bad request method'}, status=400)
 
-    if not validateToken(request):
-        return JsonResponse({'message': 'Bad token'}, status=401)
+    error = check_request(request,
+                          request_method='GET',
+                          must_be_logged_in=True)
 
-    if not loggedUser(request):
-        return JsonResponse({'message': 'You are not logged in'}, status=401)
+    if error:
+        return error
 
     user_id = getUserIdByToken(request)
 
@@ -43,66 +42,43 @@ def print_tasks(request):
 
 
 def create_new_task(request):
-    if request.method != 'POST':
-        return JsonResponse({'message': 'Bad request method'}, status=400)
 
-    if not validateToken(request):
-        return JsonResponse({'message': 'Bad token'}, status=401)
+    error = check_request(request,
+                          request_method='POST',
+                          must_be_logged_in=True,
+                          must_be_teacher=True,
+                          required_fields=['name','subject'])
 
-    if not is_user_teacher(request):
-        return JsonResponse({'message': 'You are not authorized for this action'})
-
-    if not loggedUser(request):
-        return JsonResponse({'message': 'You are not logged in'}, status=401)
-
-    if not request.body:
-        return JsonResponse({'message': 'No data'}, status=400)
+    if error:
+        return error
 
     data = json.loads(request.body.decode())
-    error_list = []
-
-    if 'name' not in data:
-        error_list.append('missing name')
-
-    if 'subject' not in data:
-        error_list.append('missing subject')
-
-    # :shrug:
-    # if 'data' not in data:
-    #     error_list.append('missing data')
-
-    if len(error_list):
-        return JsonResponse({'errors': error_list})
 
     # V mojom fejkovom pythonovskom "frontende" sa data premenia na string metodou .hex(), takze tuna sa dekoduju
-    data['data'] = bytes.fromhex(data['data'])
+    if 'data' in data:
+        data['data'] = bytes.fromhex(data['data'])
+    else:
+        data['data'] = None
 
-    cur.execute('''INSERT INTO tasks(name, subject, data) VALUES (%s, %s, %s)''', (data['name'], data['subject'], data['data']))
+    cur.execute('''
+    INSERT INTO tasks(name, subject, data) 
+    VALUES (%s, %s, %s)''', (data['name'], data['subject'], data['data'] if data['data'] is not None else 'null'))
     conn.commit()
 
     return JsonResponse({"message": "successfully added task"})
 
 
 def delete_task(request):
-    if request.method != 'DELETE':
-        return JsonResponse({'message': 'Bad request method'}, status=400)
+    error = check_request(request,
+                          request_method='DELETE',
+                          must_be_logged_in=True,
+                          must_be_teacher=True,
+                          required_fields=['task_id'])
 
-    if not validateToken(request):
-        return JsonResponse({'message': 'Bad token'}, status=401)
-
-    if not loggedUser(request):
-        return JsonResponse({'message': 'You are not logged in'}, status=401)
-
-    if not is_user_teacher(request):
-        return JsonResponse({'message': 'You are not authorized for this action'}, status=401)
-
-    if not request.body:
-        return JsonResponse({'message': 'No data'}, status=400)
+    if error:
+        return error
 
     data = json.loads(request.body.decode())
-
-    if 'task_id' not in data:
-        return JsonResponse({'message': 'No task id'}, status=400)
 
     query = """select * from tasks where id = """ + str(data['task_id'])
     cur.execute(query)
@@ -127,28 +103,16 @@ def delete_task(request):
 
 # assign task to student
 def assign_task(request):
-    if request.method != 'POST':
-        return JsonResponse({'message': 'Bad request method'}, status=400)
 
-    if not validateToken(request):
-        return JsonResponse({'message': 'Bad token'}, status=401)
-
-    if not loggedUser(request):
-        return JsonResponse({'message': 'You are not logged in'}, status=401)
-
-    if not is_user_teacher(request):
-        return JsonResponse({'message': 'You are not authorized for this action'}, status=401)
-
-    if not request.body:
-        return JsonResponse({'message': 'No data'}, status=400)
+    #
+    error = check_request(request, request_method='POST',
+                          must_be_logged_in=True,
+                          must_be_teacher=True,
+                          required_fields=['task_id', 'student_id'])
+    if error:
+        return error
 
     data = json.loads(request.body.decode())
-
-    if 'task_id' not in data:
-        return JsonResponse({'message': 'No task id'}, status=400)
-
-    if 'student_id' not in data:
-        return JsonResponse({'message': 'No student id'}, status=400)
 
     query = """select * from tasks where id = """ + str(data['task_id'])
     cur.execute(query)
