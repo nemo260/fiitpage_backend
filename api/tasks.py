@@ -1,6 +1,6 @@
 import json
 from django.http import JsonResponse
-from api.auth import getUserIdByToken, check_request
+from api.auth import getUserIdByToken, check_request, is_user_teacher
 from api.db_connection import cur, conn
 
 
@@ -12,6 +12,9 @@ def print_tasks(request):
         return error
 
     user_id = getUserIdByToken(request)
+
+    if is_user_teacher(request):
+        return JsonResponse({'message': 'You are not a student'}, status=400)
 
     query = """
     select u.id as user_id, u.name as name, u.surname as surname, t.name as task_name, t.subject as subject, t.data as data
@@ -53,7 +56,7 @@ def create_new_task(request):
     if request.FILES.get('data'):
         data['data'] = request.FILES.get('data').file.read()
     else:
-        data['data'] = None
+        return JsonResponse({'message': 'No file'}, status=400)
 
     # print(data['data'])
 

@@ -65,6 +65,9 @@ def assignMark(request):
     if 'mark' not in data or 'user_id' not in data or 'task_id' not in data:
         return JsonResponse({'message': 'Bad request'}, status=400)
 
+    if not isinstance(data['mark'], int):
+        return JsonResponse({'message': 'Bad request'}, status=400)
+
     if data['mark'] < 1 or data['mark'] > 5:
         return JsonResponse({'message': 'Bad request'}, status=400)
 
