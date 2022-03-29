@@ -142,3 +142,27 @@ def logout(request):
     }
     token = jwt.encode(header, 'secret', algorithm='HS256').decode('utf-8')
     return JsonResponse({'logout token': token}, status=200)
+
+
+# get all users from one class
+def get_users_from_class(request):
+    error = check_request(request,
+                          request_method='GET',
+                          must_be_logged_in=True)
+    if error:
+        return error
+
+    user_id = getUserIdByToken(request)
+    query = "select class from users where id = " + str(user_id)
+    cur.execute(query)
+    result = cur.fetchall()
+
+    query = "select * from users where class = " + str(result[0][0])
+    cur.execute(query)
+    result = cur.fetchall()
+
+    if not result:
+        return JsonResponse({'message': 'No users in this class'}, status=400)
+
+    return JsonResponse({'users in the same class': result}, status=200)
+
