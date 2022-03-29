@@ -47,17 +47,19 @@ def create_new_task(request):
     if error:
         return error
 
-    data = json.loads(request.body.decode())
+    # data = json.loads(request.body.decode())
+    data = request.POST.copy()
 
-    # V mojom fejkovom pythonovskom "frontende" sa data premenia na string metodou .hex(), takze tuna sa dekoduju
-    if 'data' in data:
-        data['data'] = bytes.fromhex(data['data'])
+    if request.FILES.get('data'):
+        data['data'] = request.FILES.get('data').file.read()
     else:
         data['data'] = None
 
+    # print(data['data'])
+
     cur.execute('''
     INSERT INTO tasks(name, subject, data) 
-    VALUES (%s, %s, %s)''', (data['name'], data['subject'], data['data'] if data['data'] is not None else 'null'))
+    VALUES (%s, %s, %s)''', (data['name'], data['subject'], data['data'].encode() if data['data'] is not None else 'null'))
     conn.commit()
 
     return JsonResponse({"message": "successfully added task"})

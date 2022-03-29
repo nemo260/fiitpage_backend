@@ -2,6 +2,7 @@ import json
 import datetime
 import jwt
 from django.http import JsonResponse
+from api.db_connection import cur
 
 
 def check_request(request,
@@ -32,14 +33,19 @@ def check_request(request,
         return JsonResponse({'message': 'You are not authorized for this action'}, status=403)
 
     if required_fields:
-        if not request.body:
+
+        if not request.body and not request.POST:
             return JsonResponse({'message': 'No data'}, status=400)
 
-        data = request.body.decode('utf-8')
-        try:
-            data = json.loads(data)
-        except json.JSONDecodeError:
-            return JsonResponse({'message': 'Bad request'}, status=400)
+        # if there is something in .POST, we ignore .body and decoding :shrug:
+        if not request.POST:
+            data = request.body.decode('utf-8')
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError:
+                return JsonResponse({'message': 'Bad request'}, status=400)
+        else:
+            data = request.POST
 
         # if anything is left in the checklist then something required is missing
         checklist = required_fields.copy()
@@ -51,9 +57,6 @@ def check_request(request,
             return JsonResponse({'message': 'Missing required fields', 'Items': checklist}, status=400)
 
     return None
-
-
-from api.db_connection import cur
 
 
 def loggedUser(request):
