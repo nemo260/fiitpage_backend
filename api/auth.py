@@ -124,7 +124,7 @@ def login(request):
         'iat': datetime.datetime.utcnow()
     }
     token = jwt.encode(header, 'secret', algorithm='HS256').decode('utf-8')
-    return JsonResponse({'login token': token}, status=200)
+    return JsonResponse({'login_token': token}, status=200)
 
 
 # useless function for this time :)
@@ -165,4 +165,32 @@ def get_users_from_class(request):
         return JsonResponse({'message': 'No users in this class'}, status=400)
 
     return JsonResponse({'users in the same class': result}, status=200)
+
+
+# get user info
+def get_user_info(request):
+    error = check_request(request,
+                          request_method='GET',
+                          must_be_logged_in=True)
+    if error:
+        return error
+
+    user_id = getUserIdByToken(request)
+    query = "select * from users where id = " + str(user_id)
+    cur.execute(query)
+    result = cur.fetchall()
+
+    if not result:
+        return JsonResponse({'message': 'No user with this id'}, status=400)
+
+    object = {
+        'id': result[0][0],
+        'name': result[0][1],
+        'surname': result[0][2],
+        'email': result[0][3],
+        'teacher': result[0][5],
+        'class': result[0][6]
+    }
+
+    return JsonResponse(object, status=200)
 

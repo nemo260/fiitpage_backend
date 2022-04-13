@@ -25,6 +25,9 @@ def print_tasks(request):
     cur.execute(query)
     result = cur.fetchall()
 
+    if len(result) == 0:
+        return JsonResponse({'message': 'No tasks'}, status=200)
+
     object = {
         'user_id': result[0][0],
         'name': result[0][1],
