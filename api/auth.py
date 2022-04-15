@@ -164,7 +164,20 @@ def get_users_from_class(request):
     if not result:
         return JsonResponse({'message': 'No users in this class'}, status=400)
 
-    return JsonResponse({'users in the same class': result}, status=200)
+    object = {
+        'users': []
+    }
+    for i in result:
+        object['users'].append({
+            'id': i[0],
+            'name': i[1],
+            'surname': i[2],
+            'email': i[3],
+            'class': i[6],
+            'teacher': i[5]
+        })
+
+    return JsonResponse(object, status=200)
 
 
 # get user info
