@@ -3,6 +3,45 @@ from api.db_connection import cur, conn
 from api.auth import validateToken, getUserIdByToken, loggedUser, is_user_teacher, check_request
 import json
 
+def get_class_marks(request):
+    error = check_request(request,
+                          request_method='GET',
+                          must_be_logged_in=True)
+    if error:
+        return error
+
+    user_id = getUserIdByToken(request)
+    query = "select class from users where id = " + str(user_id)
+    cur.execute(query)
+    class_id = cur.fetchall()
+
+    if not class_id:
+        return JsonResponse({'message': 'No users in this class'}, status=400)
+
+    temp = {
+        "marks": []
+    }
+
+    query = """
+    select u.name as name, u.surname as surname, m.mark as mark,  m.id as mark_id,  t.name as task_name, t.subject as task_subject
+    from marks as m 
+    join users as u on u.id = m.user_id 
+    join tasks as t on t.id = m.task_id 
+    where u.class =  """ + str(class_id[0][0])
+    cur.execute(query)
+    result = cur.fetchall()
+
+    for entry in result:
+        temp["marks"].append({
+            "name": entry[0],
+            "surname": entry[1],
+            "mark": entry[2],
+            "mark_id": entry[3],
+            "task_name": entry[4],
+            "task_subject": entry[5]
+        })
+
+    return JsonResponse(temp, status=200)
 
 def getUserMarks(request):
     if request.method != 'GET':
@@ -14,13 +53,18 @@ def getUserMarks(request):
     if not loggedUser(request):
         return JsonResponse({'message': 'You are not logged in'}, status=400)
 
+    # if user is teacher, get him marks of his students
     if is_user_teacher(request):
-        return JsonResponse({'message': 'You are not a student'}, status=400)
+        return get_class_marks(request)
 
     user_id = getUserIdByToken(request)
 
-    query = "select u.id as user_id, u.name as name, u.surname as surname, m.mark as mark, t.name as task_name from marks as m join users as u on u.id = m.user_id join tasks as t on t.id = m.task_id where u.id = " + str(
-        user_id)
+    query = """
+    select u.id as user_id, u.name as name, u.surname as surname, m.mark as mark, t.name as task_name, m.id as mark_id, t.subject as task_subject
+    from marks as m 
+    join users as u on u.id = m.user_id 
+    join tasks as t on t.id = m.task_id 
+    where u.id =  """ + str(user_id)
 
     cur.execute(query)
     result = cur.fetchall()
@@ -33,8 +77,10 @@ def getUserMarks(request):
     }
     for i in result:
         object['marks'].append({
+            'mark_id': i[5],
             'mark': i[3],
-            'task_name': i[4]
+            'task_name': i[4],
+            'task_subject': i[6]
         })
 
     return JsonResponse(object, status=200)
