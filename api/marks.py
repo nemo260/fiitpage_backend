@@ -70,9 +70,9 @@ def getUserMarks(request):
     result = cur.fetchall()
 
     object = {
-        'user_id': result[0][0],
-        'name': result[0][1],
-        'surname': result[0][2],
+        # 'user_id': result[0][0],
+        # 'name': result[0][1],
+        # 'surname': result[0][2],
         'marks': []
     }
     for i in result:
@@ -85,6 +85,36 @@ def getUserMarks(request):
 
     return JsonResponse(object, status=200)
 
+
+def get_marks_by_user_id(request, user_id: int):
+    error = check_request(request,
+                          request_method='GET',
+                          must_be_logged_in=True)
+    if error:
+        return error
+
+    query = f"""
+    select m.mark as mark, m.id as mark_id, t.name as task_name, t.subject as task_subject
+    from marks as m 
+    join tasks as t on t.id = m.task_id 
+    where m.user_id = {user_id} """
+
+    cur.execute(query)
+    result = cur.fetchall()
+
+    tmp = {
+        "marks": []
+    }
+
+    for entry in result:
+        tmp["marks"].append({
+            "mark": entry[0],
+            "mark_id": entry[1],
+            "task_name": entry[2],
+            "task_subject": entry[3]
+        })
+
+    return JsonResponse(tmp, status=200)
 
 # assign mark to student
 def assignMark(request):
