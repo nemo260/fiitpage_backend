@@ -2,7 +2,7 @@ from django.urls import path
 
 from api.auth import login, logout, get_users_from_class, get_user_info
 from api.tasks import print_tasks, create_new_task, delete_task, assign_task, update_task
-from api.marks import getUserMarks, assignMark, deleteMark, update_mark
+from api.marks import getUserMarks, get_marks_by_user_id, assignMark, deleteMark, update_mark, delete_mark_new
 from api.comments import get_comments_by_task_id, add_comment, delete_comment
 
 urlpatterns = [
@@ -23,7 +23,8 @@ urlpatterns = [
     path('comments/add', add_comment, name="add_comment"),
     path('comments/delete', delete_comment, name="delete_comment"),
 
+    path('marks/get/<int:user_id>', get_marks_by_user_id, name="get_marks_by_user_id"),
     path('marks/assign', assignMark, name="assignMark"),
-    path('marks/delete', deleteMark, name="deleteMark"),
+    path('marks/delete', delete_mark_new, name="delete_mark_new"),
     path('marks/update', update_mark, name='update_mark')
 ]

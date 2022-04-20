@@ -3,6 +3,45 @@ from api.db_connection import cur, conn
 from api.auth import validateToken, getUserIdByToken, loggedUser, is_user_teacher, check_request
 import json
 
+def get_class_marks(request):
+    error = check_request(request,
+                          request_method='GET',
+                          must_be_logged_in=True)
+    if error:
+        return error
+
+    user_id = getUserIdByToken(request)
+    query = "select class from users where id = " + str(user_id)
+    cur.execute(query)
+    class_id = cur.fetchall()
+
+    if not class_id:
+        return JsonResponse({'message': 'No users in this class'}, status=400)
+
+    temp = {
+        "marks": []
+    }
+
+    query = """
+    select u.name as name, u.surname as surname, m.mark as mark,  m.id as mark_id,  t.name as task_name, t.subject as task_subject
+    from marks as m 
+    join users as u on u.id = m.user_id 
+    join tasks as t on t.id = m.task_id 
+    where u.class =  """ + str(class_id[0][0])
+    cur.execute(query)
+    result = cur.fetchall()
+
+    for entry in result:
+        temp["marks"].append({
+            "name": entry[0],
+            "surname": entry[1],
+            "mark": entry[2],
+            "mark_id": entry[3],
+            "task_name": entry[4],
+            "task_subject": entry[5]
+        })
+
+    return JsonResponse(temp, status=200)
 
 def getUserMarks(request):
     if request.method != 'GET':
@@ -14,31 +53,68 @@ def getUserMarks(request):
     if not loggedUser(request):
         return JsonResponse({'message': 'You are not logged in'}, status=400)
 
+    # if user is teacher, get him marks of his students
     if is_user_teacher(request):
-        return JsonResponse({'message': 'You are not a student'}, status=400)
+        return get_class_marks(request)
 
     user_id = getUserIdByToken(request)
 
-    query = "select u.id as user_id, u.name as name, u.surname as surname, m.mark as mark, t.name as task_name from marks as m join users as u on u.id = m.user_id join tasks as t on t.id = m.task_id where u.id = " + str(
-        user_id)
+    query = """
+    select u.id as user_id, u.name as name, u.surname as surname, m.mark as mark, t.name as task_name, m.id as mark_id, t.subject as task_subject
+    from marks as m 
+    join users as u on u.id = m.user_id 
+    join tasks as t on t.id = m.task_id 
+    where u.id =  """ + str(user_id)
 
     cur.execute(query)
     result = cur.fetchall()
 
     object = {
-        'user_id': result[0][0],
-        'name': result[0][1],
-        'surname': result[0][2],
+        # 'user_id': result[0][0],
+        # 'name': result[0][1],
+        # 'surname': result[0][2],
         'marks': []
     }
     for i in result:
         object['marks'].append({
+            'mark_id': i[5],
             'mark': i[3],
-            'task_name': i[4]
+            'task_name': i[4],
+            'task_subject': i[6]
         })
 
     return JsonResponse(object, status=200)
 
+
+def get_marks_by_user_id(request, user_id: int):
+    error = check_request(request,
+                          request_method='GET',
+                          must_be_logged_in=True)
+    if error:
+        return error
+
+    query = f"""
+    select m.mark as mark, m.id as mark_id, t.name as task_name, t.subject as task_subject
+    from marks as m 
+    join tasks as t on t.id = m.task_id 
+    where m.user_id = {user_id} """
+
+    cur.execute(query)
+    result = cur.fetchall()
+
+    tmp = {
+        "marks": []
+    }
+
+    for entry in result:
+        tmp["marks"].append({
+            "mark": entry[0],
+            "mark_id": entry[1],
+            "task_name": entry[2],
+            "task_subject": entry[3]
+        })
+
+    return JsonResponse(tmp, status=200)
 
 # assign mark to student
 def assignMark(request):
@@ -125,6 +201,30 @@ def deleteMark(request):
 
     return JsonResponse({'message': 'Mark deleted'}, status=200)
 
+def delete_mark_new(request):
+    error = check_request(request,
+                          request_method='DELETE',
+                          must_be_logged_in=True,
+                          must_be_teacher=True,
+                          required_fields=['mark_id'])
+    if error:
+        return error
+
+    data = request.body.decode('utf-8')
+    data = json.loads(data)
+
+    query = f"select * from marks as m where m.id = {data['mark_id']}"
+    cur.execute(query)
+    result = cur.fetchall()
+
+    if len(result) == 0 or len(result[0]) == 0:
+        return JsonResponse({'message': 'Mark not found'}, status=400)
+
+    query = f"delete from marks as m where m.id = {data['mark_id']}"
+    cur.execute(query)
+    conn.commit()
+
+    return JsonResponse({'message': 'Mark deleted'}, status=200)
 
 def update_mark(request):
     error = check_request(request,
