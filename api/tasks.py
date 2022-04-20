@@ -3,6 +3,39 @@ from django.http import JsonResponse
 from api.auth import getUserIdByToken, check_request, is_user_teacher
 from api.db_connection import cur, conn
 
+def get_all_tasks(request):
+    error = check_request(request,
+                          request_method='GET',
+                          must_be_logged_in=True,
+                          must_be_teacher=True)
+    if error:
+        return error
+
+    query = """
+    select u.id as user_id, u.name as name, u.surname as surname, t.id as task_id, t.name as task_name, t.subject as subject, t.data as data
+    from users as u, tasks as t, user_tasks as ut 
+    where u.id = ut.user_id and t.id = ut.task_id"""
+    cur.execute(query)
+    result = cur.fetchall()
+
+    if len(result) == 0 or len(result[0]) == 0:
+        return JsonResponse({'message': 'No tasks'}, status=200)
+
+    object = {
+        'user_id': result[0][0],
+        'name': result[0][1],
+        'surname': result[0][2],
+        'tasks': []
+    }
+    for i in result:
+        object['tasks'].append({
+            'task_id': i[3],
+            'task_name': i[4],
+            'subject': i[5],
+            'data': None if i[6] is None else bytes(i[6]).hex()
+        })
+
+    return JsonResponse(object, status=200)
 
 def print_tasks(request):
     error = check_request(request,
@@ -14,7 +47,8 @@ def print_tasks(request):
     user_id = getUserIdByToken(request)
 
     if is_user_teacher(request):
-        return JsonResponse({'message': 'You are not a student'}, status=400)
+        return get_all_tasks(request)
+        # return JsonResponse({'message': 'You are not a student'}, status=400)
 
     query = """
     select u.id as user_id, u.name as name, u.surname as surname, t.id as task_id, t.name as task_name, t.subject as subject, t.data as data
