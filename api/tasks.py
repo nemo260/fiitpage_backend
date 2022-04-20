@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from api.auth import getUserIdByToken, check_request, is_user_teacher
 from api.db_connection import cur, conn
 
+
 def get_all_tasks(request):
     error = check_request(request,
                           request_method='GET',
@@ -12,9 +13,8 @@ def get_all_tasks(request):
         return error
 
     query = """
-    select u.id as user_id, u.name as name, u.surname as surname, t.id as task_id, t.name as task_name, t.subject as subject, t.data as data
-    from users as u, tasks as t, user_tasks as ut 
-    where u.id = ut.user_id and t.id = ut.task_id"""
+        select * from tasks
+        """
     cur.execute(query)
     result = cur.fetchall()
 
@@ -22,20 +22,18 @@ def get_all_tasks(request):
         return JsonResponse({'message': 'No tasks'}, status=200)
 
     object = {
-        'user_id': result[0][0],
-        'name': result[0][1],
-        'surname': result[0][2],
         'tasks': []
     }
     for i in result:
         object['tasks'].append({
-            'task_id': i[3],
-            'task_name': i[4],
-            'subject': i[5],
-            'data': None if i[6] is None else bytes(i[6]).hex()
+            'task_id': i[0],
+            'task_name': i[1],
+            'subject': i[2],
+            'data': None if i[3] is None else bytes(i[3]).hex()
         })
 
     return JsonResponse(object, status=200)
+
 
 def print_tasks(request):
     error = check_request(request,
@@ -220,3 +218,5 @@ def update_task(request):
     conn.commit()
 
     return JsonResponse({'message': 'Successfully updated task'}, status=200)
+
+
