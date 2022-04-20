@@ -173,25 +173,25 @@ def assign_task(request):
     if len(result) == 0:
         return JsonResponse({'message': 'No task with this id'}, status=400)
 
-    for i in data['student_id']:
-        cur.execute('''select * from users where id = %s''', str(i))
-        result = cur.fetchall()
-        if len(result) == 0:
-            return JsonResponse({'message': 'No student with this id'}, status=400)
+    # for i in data['student_id']:
+    cur.execute('''select * from users where id = %s''', str(data['student_id']))
+    result = cur.fetchall()
+    if len(result) == 0:
+        return JsonResponse({'message': 'No student with this id'}, status=400)
 
-        cur.execute('''select * from users where role = true and id = %s''', str(i))
-        result = cur.fetchall()
-        if len(result):
-            return JsonResponse({'message': 'You can not assign task to teacher'}, status=400)
+    cur.execute('''select * from users where role = true and id = %s''', str(data['student_id']))
+    result = cur.fetchall()
+    if len(result):
+        return JsonResponse({'message': 'You can not assign task to teacher'}, status=400)
 
-        cur.execute('''select * from user_tasks where task_id = %s and user_id = %s''', (data['task_id'], str(i)))
-        result = cur.fetchall()
-        if len(result) != 0:
-            return JsonResponse({'message': 'Student already assigned to this task'}, status=400)
+    cur.execute('''select * from user_tasks where task_id = %s and user_id = %s''', (data['task_id'], str(data['student_id'])))
+    result = cur.fetchall()
+    if len(result) != 0:
+        return JsonResponse({'message': 'Student already assigned to this task'}, status=200)
 
-    for i in data['student_id']:
-        cur.execute('''INSERT INTO user_tasks(user_id, task_id) VALUES (%s, %s)''', (str(i), data['task_id']))
-        conn.commit()
+
+    cur.execute('''INSERT INTO user_tasks(user_id, task_id) VALUES (%s, %s)''', (str(data['student_id']), data['task_id']))
+    conn.commit()
 
     return JsonResponse({"message": "successfully assigned task"}, status=200)
 
