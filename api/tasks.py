@@ -17,7 +17,7 @@ def print_tasks(request):
         return JsonResponse({'message': 'You are not a student'}, status=400)
 
     query = """
-    select u.id as user_id, u.name as name, u.surname as surname, t.name as task_name, t.subject as subject, t.data as data
+    select u.id as user_id, u.name as name, u.surname as surname, t.id as task_id, t.name as task_name, t.subject as subject, t.data as data
     from users as u, tasks as t, user_tasks as ut 
     where u.id = ut.user_id and t.id = ut.task_id and u.id = 
     """ + str(user_id)
@@ -36,14 +36,40 @@ def print_tasks(request):
     }
     for i in result:
         object['tasks'].append({
-            'task_name': i[3],
-            'subject': i[4],
-            'data': None if i[5] is None else bytes(i[5]).hex()
+            'task_id': i[3],
+            'task_name': i[4],
+            'subject': i[5],
+            'data': None if i[6] is None else bytes(i[6]).hex()
         })
 
     return JsonResponse(object, status=200)
 
 
+#def create_new_task(request):
+#    error = check_request(request,
+#                          request_method='POST',
+#                          must_be_logged_in=True,
+#                          must_be_teacher=True,
+#                          required_fields=['name', 'subject'])
+#    if error:
+#        return error
+#
+#    # data = json.loads(request.body.decode())
+#    data = request.POST.copy()
+#
+#    if request.FILES.get('data'):
+#        data['data'] = request.FILES.get('data').file.read()
+#    else:
+#        return JsonResponse({'message': 'No file'}, status=400)
+#
+#    # print(data['data'])
+#
+#    cur.execute('''
+#    INSERT INTO tasks(name, subject, data)
+#    VALUES (%s, %s, %s)''', (data['name'], data['subject'], data['data'].encode() if data['data'] is not None else 'null'))
+#    conn.commit()
+#
+#    return JsonResponse({"message": "successfully added task"})
 def create_new_task(request):
     error = check_request(request,
                           request_method='POST',
@@ -53,19 +79,12 @@ def create_new_task(request):
     if error:
         return error
 
-    # data = json.loads(request.body.decode())
-    data = request.POST.copy()
-
-    if request.FILES.get('data'):
-        data['data'] = request.FILES.get('data').file.read()
-    else:
-        return JsonResponse({'message': 'No file'}, status=400)
-
-    # print(data['data'])
+    data = request.body.decode('utf-8')
+    data = json.loads(data)
 
     cur.execute('''
     INSERT INTO tasks(name, subject, data) 
-    VALUES (%s, %s, %s)''', (data['name'], data['subject'], data['data'].encode() if data['data'] is not None else 'null'))
+    VALUES (%s, %s, %s)''', (data['name'], data['subject'], data['data'] if data['data'] is not None else 'null'))
     conn.commit()
 
     return JsonResponse({"message": "successfully added task"})

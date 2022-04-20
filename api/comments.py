@@ -43,7 +43,7 @@ def get_comments_by_task_id(request, task_id: int):
     return JsonResponse(object, status=200)
 
 
-def add_comment(request, task_id: int):
+def add_comment(request):
     if request.method != 'POST':
         return JsonResponse({'message': 'Bad request method'}, status=400)
 
@@ -64,7 +64,7 @@ def add_comment(request, task_id: int):
     if 'comment' not in data:
         return JsonResponse({'message': 'No comment'}, status=400)
 
-    query = "insert into comments (comment, user_id, task_id) values ('" + data['comment'] + "'," + str(user_id) + ",'" + str(task_id) + "');"
+    query = "insert into comments (comment, user_id, task_id) values ('" + data['comment'] + "'," + str(user_id) + ",'" + str(data['task_id']) + "');"
 
     cur.execute(query)
     conn.commit()

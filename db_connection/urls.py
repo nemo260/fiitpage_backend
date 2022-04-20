@@ -20,7 +20,7 @@ urlpatterns = [
     path('tasks/update', update_task, name='update_task'),
 
     path('comments/<int:task_id>', get_comments_by_task_id, name="get_comments_by_task_id"),
-    path('comments/add/<int:task_id>', add_comment, name="add_comment"),
+    path('comments/add', add_comment, name="add_comment"),
     path('comments/delete', delete_comment, name="delete_comment"),
 
     path('marks/assign', assignMark, name="assignMark"),
