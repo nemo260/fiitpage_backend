@@ -201,6 +201,30 @@ def deleteMark(request):
 
     return JsonResponse({'message': 'Mark deleted'}, status=200)
 
+def delete_mark_new(request):
+    error = check_request(request,
+                          request_method='DELETE',
+                          must_be_logged_in=True,
+                          must_be_teacher=True,
+                          required_fields=['mark_id'])
+    if error:
+        return error
+
+    data = request.body.decode('utf-8')
+    data = json.loads(data)
+
+    query = f"select * from marks as m where m.id = {data['mark_id']}"
+    cur.execute(query)
+    result = cur.fetchall()
+
+    if len(result) == 0 or len(result[0]) == 0:
+        return JsonResponse({'message': 'Mark not found'}, status=400)
+
+    query = f"delete from marks as m where m.id = {data['mark_id']}"
+    cur.execute(query)
+    conn.commit()
+
+    return JsonResponse({'message': 'Mark deleted'}, status=200)
 
 def update_mark(request):
     error = check_request(request,
